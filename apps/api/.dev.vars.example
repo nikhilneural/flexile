@@ -1,0 +1,61 @@
+# Local development secrets for wrangler dev
+# Copy this file to .dev.vars and fill in values:
+#   cp .dev.vars.example .dev.vars
+
+# Database connection (used when Hyperdrive is not available locally)
+DATABASE_URL=postgres://flexile:flexile@localhost:5432/flexile_development
+
+# Clerk authentication
+CLERK_SECRET_KEY=sk_test_xxxx
+CLERK_PUBLISHABLE_KEY=pk_test_xxxx
+
+# Email (Resend)
+RESEND_API_KEY=re_xxxx
+EMAIL_DOMAIN=dev.flexile.com
+
+# Stripe
+STRIPE_SECRET_KEY=sk_test_xxxx
+STRIPE_ENDPOINT_SECRET=whsec_xxxx
+STRIPE_PUBLISHABLE_KEY=pk_test_xxxx
+
+# QuickBooks
+QUICKBOOKS_CLIENT_ID=
+QUICKBOOKS_CLIENT_SECRET=
+QUICKBOOKS_REDIRECT_URL=http://localhost:8787/webhooks/quickbooks/callback
+QUICKBOOKS_WEBHOOK_SECRET=
+
+# GitHub
+GH_CLIENT_ID=
+GH_CLIENT_SECRET=
+GH_WEBHOOK_SECRET=
+
+# Encryption keys
+ACTIVERECORD_DETERMINISTIC_DERIVED_KEY=dev-deterministic-key
+ACTIVERECORD_DERIVED_KEY=dev-derived-key
+
+# DocuSeal
+DOCUSEAL_TOKEN=
+DOCUSEAL_USER_EMAIL=
+
+# Wise
+WISE_PROFILE_ID=
+WISE_API_KEY=
+
+# Slack
+SLACK_WEBHOOK_URL=
+SLACK_WEBHOOK_CHANNEL=
+SLACK_TOKEN=
+SLACK_CHANNEL_ID=
+
+# Google
+GOOGLE_CLIENT_ID=
+
+# DocuSeal form IDs
+EQUITY_EXERCISE_DOCUSEAL_ID=
+
+# Legacy S3 credentials (for migration period)
+AWS_ACCESS_KEY_ID=minioadmin
+AWS_SECRET_ACCESS_KEY=minioadmin
+AWS_REGION=us-east-1
+S3_PRIVATE_BUCKET=flexile-private
+S3_PUBLIC_BUCKET=flexile-public

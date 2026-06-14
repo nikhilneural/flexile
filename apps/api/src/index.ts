@@ -10,6 +10,7 @@ import { internalRouter } from "./routes/internal";
 import { adminRouter } from "./routes/admin";
 import { apiV1Router } from "./routes/api/v1";
 import { handleQueueBatch } from "./queues/consumer";
+import { handleScheduled } from "./scheduled";
 import type { QueueMessage } from "./queues/types";
 
 const app = new Hono<{ Bindings: Env }>();
@@ -69,5 +70,8 @@ export default {
   fetch: app.fetch,
   async queue(batch: MessageBatch<QueueMessage>, env: Env): Promise<void> {
     await handleQueueBatch(batch, env);
+  },
+  async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
+    ctx.waitUntil(handleScheduled(event, env));
   },
 };
