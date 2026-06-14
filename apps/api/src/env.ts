@@ -50,6 +50,7 @@ export interface Env {
   QUICKBOOKS_CLIENT_ID: string;
   QUICKBOOKS_CLIENT_SECRET: string;
   QUICKBOOKS_REDIRECT_URL: string;
+  QUICKBOOKS_WEBHOOK_SECRET: string;
 
   // GitHub
   GH_CLIENT_ID: string;
@@ -63,6 +64,10 @@ export interface Env {
   // DocuSeal
   DOCUSEAL_TOKEN: string;
   DOCUSEAL_USER_EMAIL: string;
+
+  // Wise
+  WISE_PROFILE_ID: string;
+  WISE_API_KEY: string;
 
   // Slack
   SLACK_WEBHOOK_URL: string;

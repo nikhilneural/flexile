@@ -1,0 +1,50 @@
+{
+  "id": "FEAT-003",
+  "type": "feat",
+  "description": "Migrate all Rails backend functionality to Hono.js routes. This covers: webhook handlers (Stripe, GitHub, QuickBooks, Wise), internal company endpoints, admin endpoints, and all the business logic in Rails services/jobs that must be converted to Cloudflare Queue consumers. This eliminates the Rails backend entirely.",
+  "status": "in_progress",
+  "steps": [
+    "Create src/routes/webhooks/stripe.ts - migrate apps/rails/app/controllers/webhooks/stripe_controller.rb - Stripe webhook handler with signature verification, handling payment_intent.succeeded, charge.refunded, invoice events, etc.",
+    "Create src/routes/webhooks/github.ts - migrate apps/rails/app/controllers/webhooks/github_controller.rb - GitHub webhook handler with HMAC signature verification, handling push/PR/issue events that sync to the GitHub integration",
+    "Create src/routes/webhooks/quickbooks.ts - migrate apps/rails/app/controllers/webhooks/quickbooks_controller.rb - QuickBooks webhook handler with HMAC verification",
+    "Create src/routes/webhooks/wise.ts - migrate apps/rails/app/controllers/webhooks/wise_controller.rb - Wise payment transfer status webhook handler",
+    "Create src/routes/internal/ directory - migrate apps/rails/app/controllers/internal/ endpoints: companies (workers, invoices, equity exercises, roles, search, switch, company updates, stripe ephemeral keys, role applications, lawyers, signee search), onboarding, settings (Wise account requirements), company invitations, demo",
+    "Create src/routes/admin/ directory - migrate apps/rails/app/controllers/admin/ - admin dashboard endpoints for company management",
+    "Create src/routes/api/v1/ directory - migrate apps/rails/app/controllers/api/v1/ - public API v1 endpoints (roles, user_leads)",
+    "Create src/queues/ directory for Cloudflare Queue consumers - this replaces both Inngest functions and Sidekiq jobs",
+    "Create src/queues/invoice-payment.ts - migrate pay_invoice_job.rb and related invoice payment logic",
+    "Create src/queues/consolidated-payment.ts - migrate process_consolidated_payment_job.rb, charge_consolidated_invoice_job.rb, create_payout_for_consolidated_payment",
+    "Create src/queues/equity-vesting.ts - migrate process_scheduled_vesting_for_equity_grants_job.rb, process_equity_grant_scheduled_vesting_job.rb, vest_stock_options_job.rb",
+    "Create src/queues/dividend-payments.ts - migrate investor_dividends_payment_job.rb, pay_all_dividends_job.rb, remind_or_pay_dividends.rb",
+    "Create src/queues/quickbooks-sync.ts - migrate quickbooks_data_sync_job.rb, quickbooks_integration_sync_schedule_job.rb, quickbooks_monthly_financial_report_sync_job.rb, quickbooks_event_handler_job.rb (consolidate with apps/next/inngest/functions/quickbooksIntegrationSync.ts, quickbooksVendorsSync.ts, quickbooksFinancialReportSync.ts)",
+    "Create src/queues/github-events.ts - migrate github_event_handler_job.rb",
+    "Create src/queues/emails.ts - migrate all email-related jobs: company_administrator_digest_email_job.rb, company_worker_reminder_email_service.rb, email_blast_job.rb, expense_card_grant_email_job.rb, consolidated_invoice_csv_email_job.rb, dividend_payment_csv_email_job.rb, company_update_email_job.rb (consolidate with apps/next/inngest/functions/emails/)",
+    "Create src/queues/slack.ts - migrate slack_message_job.rb (consolidate with apps/next/inngest/functions/sendSlackMessage.ts and slackWeeklyRecap.ts)",
+    "Create src/queues/stripe-operations.ts - migrate stripe_balance_top_up_job.rb, transfer_from_stripe_to_wise_job.rb",
+    "Create src/queues/wise-operations.ts - migrate wise_balance_update_job.rb, wise_balance_webhook_job.rb, wise_top_up_reminder_job.rb, wise_transfer_update_job.rb",
+    "Create src/queues/tax-operations.ts - migrate generate_irs_tax_forms_job.rb, generate_tax_information_document_job.rb, check_tin_validity_job.rb, tax_form_review_job.rb",
+    "Create src/queues/documents.ts - migrate create_share_certificate_pdf_job.rb, generate_contractor_invitation_job.rb, create_consolidated_invoice_receipt_job.rb",
+    "Create src/queues/equity-buybacks.ts - migrate pay_all_equity_buybacks_job.rb, investor_equity_buybacks_payment_job.rb",
+    "Create src/queues/cap-table.ts - migrate process_cap_table_upload.rb logic",
+    "Create src/services/ directory and port critical Rails services: approve_and_pay_or_charge_for_invoices.rb, consolidated_invoice_creation.rb, create_consulting_contract.rb, create_investors_and_dividends.rb, equity_exercising_service.rb, equity_grant_creation.rb, sign_up_company.rb, sign_up_user.rb, update_user.rb, dividend_computation_generation.rb, search_service.rb, and all other services",
+    "Create src/queues/consumer.ts - the main queue consumer entry point that routes messages to appropriate handlers based on message type",
+    "Update wrangler.toml to register all queue consumers and producers",
+    "Update src/index.ts to register webhook routes and internal/admin routes"
+  ],
+  "acceptance_criteria": [
+    "All 4 webhook controllers (Stripe, GitHub, QuickBooks, Wise) are migrated with proper signature verification",
+    "All internal company endpoints are migrated from Rails controllers",
+    "All 45+ Sidekiq jobs are migrated to Cloudflare Queue consumers",
+    "All 6 Inngest functions are consolidated into the queue system",
+    "All Rails services with business logic are ported to src/services/",
+    "Queue consumer handles routing messages to correct handlers",
+    "TypeScript compiles without errors"
+  ],
+  "verification": [
+    "Run 'cd apps/api && npx tsc --noEmit' to verify all files compile correctly",
+    "Verify all webhook routes have proper signature verification logic",
+    "Verify queue consumer routes all message types to handlers"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

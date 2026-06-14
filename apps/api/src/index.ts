@@ -3,7 +3,14 @@ import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { requestId } from "hono/request-id";
 import type { Env } from "./env";
+import type { MessageBatch } from "@cloudflare/workers-types";
 import { routes } from "./routes";
+import { webhooksRouter } from "./routes/webhooks";
+import { internalRouter } from "./routes/internal";
+import { adminRouter } from "./routes/admin";
+import { apiV1Router } from "./routes/api/v1";
+import { handleQueueBatch } from "./queues/consumer";
+import type { QueueMessage } from "./queues/types";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -43,7 +50,24 @@ app.get("/health", (c) => {
   });
 });
 
-// Mount all API routes
+// Mount all API routes (tRPC-migrated REST endpoints)
 app.route("/", routes);
 
-export default app;
+// Webhook routes (no auth, signature verification per-handler)
+app.route("/webhooks", webhooksRouter);
+
+// Internal routes (Rails internal controllers)
+app.route("/internal", internalRouter);
+
+// Admin routes (Administrate dashboard)
+app.route("/admin", adminRouter);
+
+// Public API v1 routes
+app.route("/api/v1", apiV1Router);
+
+export default {
+  fetch: app.fetch,
+  async queue(batch: MessageBatch<QueueMessage>, env: Env): Promise<void> {
+    await handleQueueBatch(batch, env);
+  },
+};
