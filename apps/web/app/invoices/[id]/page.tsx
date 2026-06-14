@@ -1,0 +1,340 @@
+"use client";
+
+import { PaperClipIcon, PencilIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { useMutation } from "@tanstack/react-query";
+import Link from "next/link";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useMemo, useState } from "react";
+import Button from "@/components/Button";
+import { Card, CardRow } from "@/components/Card";
+import MainLayout from "@/components/layouts/Main";
+import { linkClasses } from "@/components/Link";
+import Modal from "@/components/Modal";
+import MutationButton from "@/components/MutationButton";
+import Notice from "@/components/Notice";
+import Table, { createColumnHelper, useTable } from "@/components/Table";
+import { Slider } from "@/components/ui/slider";
+import { useCurrentCompany, useCurrentUser } from "@/global";
+import type { RouterOutput } from "@/trpc";
+import { PayRateType, trpc } from "@/trpc/client";
+import { assert } from "@/utils/assert";
+import { formatMoneyFromCents } from "@/utils/formatMoney";
+import { formatDate, formatDuration } from "@/utils/time";
+import {
+  Address,
+  ApproveButton,
+  EDITABLE_INVOICE_STATES,
+  LegacyAddress,
+  RejectModal,
+  useAreTaxRequirementsMet,
+  useIsActionable,
+} from "..";
+import InvoiceStatus, { StatusDetails } from "../Status";
+
+type Invoice = RouterOutput["invoices"]["get"];
+type InvoiceLineItem = Invoice["lineItems"][number];
+export default function InvoicePage() {
+  const { id } = useParams<{ id: string }>();
+  const user = useCurrentUser();
+  const company = useCurrentCompany();
+  const taxRequirementsMet = useAreTaxRequirementsMet();
+  const [invoice, { refetch }] = trpc.invoices.get.useSuspenseQuery({ companyId: company.id, id });
+  const complianceInfo = invoice.contractor.user.complianceInfo;
+  const [expenseCategories] = trpc.expenseCategories.list.useSuspenseQuery({ companyId: company.id });
+
+  const searchParams = useSearchParams();
+  const [acceptPaymentModalOpen, setAcceptPaymentModalOpen] = useState(
+    invoice.requiresAcceptanceByPayee && searchParams.get("accept") === "true",
+  );
+  const acceptPayment = trpc.invoices.acceptPayment.useMutation();
+  const defaultEquityPercentage = invoice.minAllowedEquityPercentage ?? invoice.equityPercentage;
+  const [equityPercentage, setEquityPercentageElected] = useState(defaultEquityPercentage);
+
+  const equityAmountInCents = useMemo(
+    () => (invoice.totalAmountInUsdCents * BigInt(equityPercentage)) / 100n,
+    [equityPercentage],
+  );
+
+  const cashAmountInCents = useMemo(() => invoice.totalAmountInUsdCents - equityAmountInCents, [equityAmountInCents]);
+
+  const acceptPaymentMutation = useMutation({
+    mutationFn: async () => {
+      await acceptPayment.mutateAsync({ companyId: company.id, id, equityPercentage });
+      await refetch();
+      setEquityPercentageElected(defaultEquityPercentage);
+      setAcceptPaymentModalOpen(false);
+    },
+    onSettled: () => {
+      acceptPaymentMutation.reset();
+    },
+  });
+
+  const details = StatusDetails(invoice);
+  const columnHelper = createColumnHelper<InvoiceLineItem>();
+  const cashFactor = 1 - invoice.equityPercentage / 100;
+  const columns = [
+    columnHelper.simple(
+      "description",
+      complianceInfo?.businessEntity ? `Services (${complianceInfo.legalName})` : "Services",
+    ),
+    invoice.contractor.payRateType === PayRateType.ProjectBased
+      ? null
+      : columnHelper.simple("minutes", "Hours", (v) => (v ? formatDuration(v) : null), "numeric"),
+    invoice.contractor.payRateType === PayRateType.ProjectBased
+      ? null
+      : columnHelper.simple(
+          "payRateInSubunits",
+          "Cash rate",
+          (v) => (v ? `${formatMoneyFromCents(v * cashFactor)} / hour` : ""),
+          "numeric",
+        ),
+    columnHelper.simple(
+      "totalAmountCents",
+      "Line total",
+      (v) => formatMoneyFromCents(Number(v) * cashFactor),
+      "numeric",
+    ),
+  ].filter((column) => !!column);
+  const table = useTable({ columns, data: invoice.lineItems });
+
+  assert(!!invoice.invoiceDate); // must be defined due to model checks in rails
+
+  return (
+    <MainLayout
+      title={`Invoice ${invoice.invoiceNumber}`}
+      headerActions={
+        <div className="flex gap-2">
+          {invoice.requiresAcceptanceByPayee && user.id === invoice.userId ? (
+            <Button onClick={() => setAcceptPaymentModalOpen(true)}>Accept payment</Button>
+          ) : null}
+          <InvoiceStatus aria-label="Status" invoice={invoice} />
+
+          {user.activeRole === "administrator" ? (
+            <CompanyHeader invoice={invoice} />
+          ) : EDITABLE_INVOICE_STATES.includes(invoice.status) ? (
+            <Button variant="outline" asChild>
+              <Link href={`/invoices/${invoice.id}/edit`}>
+                {invoice.status !== "rejected" && <PencilIcon className="h-4 w-4" />}
+                {invoice.status === "rejected" ? "Submit again" : "Edit invoice"}
+              </Link>
+            </Button>
+          ) : null}
+        </div>
+      }
+    >
+      {invoice.requiresAcceptanceByPayee && user.id === invoice.userId ? (
+        <Modal open={acceptPaymentModalOpen} onClose={() => setAcceptPaymentModalOpen(false)} title="Accept invoice">
+          <div>
+            If everything looks correct, accept the invoice. Then your company administrator can initiate payment.
+          </div>
+          <Card>
+            {invoice.minAllowedEquityPercentage !== null && invoice.maxAllowedEquityPercentage !== null ? (
+              <CardRow>
+                <div className="mb-4 flex items-center justify-between">
+                  <span className="mb-4 text-gray-600">Cash vs equity split</span>
+                  <span className="font-medium">
+                    {(equityPercentage / 100).toLocaleString(undefined, { style: "percent" })} equity
+                  </span>
+                </div>
+                <Slider
+                  className="mb-4"
+                  value={[equityPercentage]}
+                  onValueChange={([selection]) =>
+                    setEquityPercentageElected(selection ?? invoice.minAllowedEquityPercentage ?? 0)
+                  }
+                  min={invoice.minAllowedEquityPercentage}
+                  max={invoice.maxAllowedEquityPercentage}
+                />
+                <div className="flex justify-between text-gray-600">
+                  <span>
+                    {(invoice.minAllowedEquityPercentage / 100).toLocaleString(undefined, { style: "percent" })} equity
+                  </span>
+                  <span>
+                    {(invoice.maxAllowedEquityPercentage / 100).toLocaleString(undefined, { style: "percent" })} equity
+                  </span>
+                </div>
+              </CardRow>
+            ) : null}
+            <CardRow>
+              <div>
+                <div className="flex items-center justify-between">
+                  <span>Cash amount</span>
+                  <span className="font-medium">{formatMoneyFromCents(cashAmountInCents)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Equity value</span>
+                  <span className="font-medium">{formatMoneyFromCents(equityAmountInCents)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Total value</span>
+                  <span className="font-medium">{formatMoneyFromCents(invoice.totalAmountInUsdCents)}</span>
+                </div>
+              </div>
+            </CardRow>
+          </Card>
+
+          <div className="flex justify-end">
+            <MutationButton mutation={acceptPaymentMutation} successText="Success!" loadingText="Saving...">
+              {invoice.minAllowedEquityPercentage !== null && invoice.maxAllowedEquityPercentage !== null
+                ? `Confirm ${(equityPercentage / 100).toLocaleString(undefined, { style: "percent" })} split`
+                : "Accept payment"}
+            </MutationButton>
+          </div>
+        </Modal>
+      ) : null}
+      <div className="flex flex-col gap-4">
+        {!taxRequirementsMet(invoice) && (
+          <Notice variant="critical">
+            <strong>Missing tax information.</strong>
+            Invoice is not payable until contractor provides tax information.
+          </Notice>
+        )}
+
+        {details ? (
+          <Notice variant={invoice.status === "rejected" ? "critical" : undefined} hideIcon>
+            {details}
+          </Notice>
+        ) : null}
+      </div>
+
+      {invoice.equityAmountInCents > 0 ? (
+        <Notice className="print:hidden">
+          When this invoice is paid, you'll receive an additional {formatMoneyFromCents(invoice.equityAmountInCents)} in
+          equity. This amount is separate from the total shown below.
+        </Notice>
+      ) : null}
+
+      <section>
+        <form>
+          <div className="grid gap-4">
+            <div className="grid auto-cols-fr gap-3 md:grid-flow-col print:grid-flow-col">
+              <div>
+                From
+                <br />
+                <b>{invoice.billFrom}</b>
+                <div>
+                  <Address address={invoice} />
+                </div>
+              </div>
+              <div>
+                To
+                <br />
+                <b>{invoice.billTo}</b>
+                <div>
+                  <LegacyAddress address={company.address} />
+                </div>
+              </div>
+              <div>
+                Invoice ID
+                <br />
+                {invoice.invoiceNumber}
+              </div>
+              <div>
+                Sent on
+                <br />
+                {formatDate(invoice.invoiceDate)}
+              </div>
+              <div>
+                Paid on
+                <br />
+                {invoice.paidAt ? formatDate(invoice.paidAt) : "-"}
+              </div>
+            </div>
+
+            {invoice.lineItems.length > 0 ? <Table table={table} /> : null}
+
+            {invoice.expenses.length > 0 && (
+              <Card>
+                <CardRow className="flex justify-between gap-2">
+                  <div>Expense</div>
+                  <div>Amount</div>
+                </CardRow>
+                {invoice.expenses.map((expense, i) => (
+                  <CardRow key={i} className="flex justify-between gap-2">
+                    <a href={expense.attachment} download className={linkClasses}>
+                      <PaperClipIcon className="inline size-4" />
+                      {expenseCategories.find((category) => category.id === expense.expenseCategoryId)?.name} –{" "}
+                      {expense.description}
+                    </a>
+                    <span>{formatMoneyFromCents(expense.totalAmountInCents)}</span>
+                  </CardRow>
+                ))}
+              </Card>
+            )}
+
+            <footer className="flex justify-between">
+              <div>
+                {invoice.notes ? (
+                  <div>
+                    <b>Notes</b>
+                    <div>
+                      <div className="text-xs">
+                        <p>{invoice.notes}</p>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+              <Card>
+                {invoice.lineItems.length > 0 && invoice.expenses.length > 0 && (
+                  <>
+                    <CardRow className="flex justify-between gap-2">
+                      <strong>Total services</strong>
+                      <span>
+                        {formatMoneyFromCents(
+                          invoice.lineItems.reduce(
+                            (acc, lineItem) => acc + Number(lineItem.totalAmountCents) * cashFactor,
+                            0,
+                          ),
+                        )}
+                      </span>
+                    </CardRow>
+                    <CardRow className="flex justify-between gap-2">
+                      <strong>Total expenses</strong>
+                      <span>
+                        {formatMoneyFromCents(
+                          invoice.expenses.reduce((acc, expense) => acc + expense.totalAmountInCents, 0n),
+                        )}
+                      </span>
+                    </CardRow>
+                  </>
+                )}
+                <CardRow className="flex justify-between gap-2">
+                  <strong>Total</strong>
+                  <span>{formatMoneyFromCents(invoice.cashAmountInCents)}</span>
+                </CardRow>
+              </Card>
+            </footer>
+          </div>
+        </form>
+      </section>
+    </MainLayout>
+  );
+}
+
+const CompanyHeader = ({ invoice }: { invoice: Invoice }) => {
+  const [rejectModalOpen, setRejectModalOpen] = useState(false);
+  const router = useRouter();
+  const navigateToInvoices = () => router.push(`/invoices`);
+  const isActionable = useIsActionable();
+
+  if (!isActionable(invoice)) return null;
+
+  return (
+    <>
+      <Button variant="outline" onClick={() => setRejectModalOpen(true)}>
+        <XMarkIcon className="size-4" />
+        Reject
+      </Button>
+
+      <RejectModal
+        open={rejectModalOpen}
+        onClose={() => setRejectModalOpen(false)}
+        onReject={navigateToInvoices}
+        ids={[invoice.id]}
+      />
+
+      <ApproveButton invoice={invoice} onApprove={navigateToInvoices} />
+    </>
+  );
+};

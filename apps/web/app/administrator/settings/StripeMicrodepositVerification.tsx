@@ -1,0 +1,156 @@
+import { useMutation } from "@tanstack/react-query";
+import { ApiError } from "@/src/lib/api-client";
+import { fromUnixTime } from "date-fns";
+import { Map } from "immutable";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import Button from "@/components/Button";
+import DecimalInput from "@/components/DecimalInput";
+import Input from "@/components/Input";
+import Modal from "@/components/Modal";
+import MutationButton from "@/components/MutationButton";
+import Notice from "@/components/Notice";
+import { useCurrentCompany } from "@/global";
+import { trpc } from "@/trpc/client";
+import { assert } from "@/utils/assert";
+import { formatDate } from "@/utils/time";
+
+const StripeMicrodepositVerification = () => {
+  const company = useCurrentCompany();
+  const searchParams = useSearchParams();
+
+  const [{ microdepositVerificationDetails }] = trpc.companies.microdepositVerificationDetails.useSuspenseQuery({
+    companyId: company.id,
+  });
+  const microdepositVerification = trpc.companies.microdepositVerification.useMutation();
+  const [showVerificationModal, setShowVerificationModal] = useState(
+    searchParams.get("open-modal") === "microdeposits",
+  );
+  const [verificationCode, setVerificationCode] = useState("");
+  const [firstAmount, setFirstAmount] = useState<number | null>(null);
+  const [secondAmount, setSecondAmount] = useState<number | null>(null);
+  const [errors, setErrors] = useState(Map<string, string>());
+  const data = { verificationCode, firstAmount, secondAmount };
+  Object.entries(data).forEach(([key, value]) => useEffect(() => setErrors(errors.delete(key)), [value]));
+
+  const arrivalDate =
+    microdepositVerificationDetails && formatDate(fromUnixTime(microdepositVerificationDetails.arrival_timestamp));
+
+  const verifyMicrodeposit = useMutation({
+    mutationFn: async () => {
+      assert(microdepositVerificationDetails != null);
+      const newErrors = errors.clear().withMutations((errors) => {
+        if (microdepositVerificationDetails.microdeposit_type === "descriptor_code") {
+          if (verificationCode.length !== 6) errors.set("verificationCode", "Please enter a 6-digit code.");
+        } else {
+          if (!firstAmount) errors.set("firstAmount", "Please enter an amount.");
+          if (!secondAmount) errors.set("secondAmount", "Please enter an amount.");
+        }
+      });
+      setErrors(newErrors);
+      if (newErrors.size > 0) throw new Error("Invalid input");
+
+      try {
+        await microdepositVerification.mutateAsync({
+          companyId: company.id,
+          ...(microdepositVerificationDetails.microdeposit_type === "descriptor_code"
+            ? { code: verificationCode }
+            : { amounts: [(firstAmount || 0) * 100, (secondAmount || 0) * 100] }),
+        });
+      } catch (error) {
+        if (error instanceof ApiError) {
+          if (microdepositVerificationDetails.microdeposit_type === "descriptor_code") {
+            errors.set(
+              "verificationCode",
+              error.message ||
+                `Invalid code. Please ensure you're entering the correct 6-digit code from the $0.01 Stripe deposit on ${arrivalDate}`,
+            );
+          } else {
+            errors.set(
+              "secondAmount",
+              error.message ||
+                `Incorrect deposit amounts. Please ensure you're entering the amounts from the Stripe deposits on ${arrivalDate}`,
+            );
+          }
+        } else throw error;
+      }
+    },
+    onSuccess: () => setShowVerificationModal(false),
+  });
+
+  return !microdepositVerificationDetails || verifyMicrodeposit.isSuccess ? null : (
+    <>
+      <Notice hideIcon>
+        <h2 className="text-xl font-bold">Verify your bank account to enable contractor payments</h2>
+        <p>To ensure seamless payments to your contractors, we need to confirm your bank account details.</p>
+        <Button onClick={() => setShowVerificationModal(true)}>Verify bank account</Button>
+      </Notice>
+
+      <Modal
+        open={showVerificationModal}
+        onClose={() => setShowVerificationModal(false)}
+        title="Verify your bank account"
+      >
+        {microdepositVerificationDetails.microdeposit_type === "descriptor_code" ? (
+          <p>
+            Check your {microdepositVerificationDetails.bank_account_number || ""} bank account for a $0.01 deposit from
+            Stripe on {arrivalDate}. The transaction's description will have your 6-digit verification code starting
+            with 'SM'.
+          </p>
+        ) : (
+          <p>
+            Check your {microdepositVerificationDetails.bank_account_number || ""} bank account for
+            <strong>two deposits</strong> from Stripe on {arrivalDate}. The transactions' description will read
+            "ACCTVERIFY".
+          </p>
+        )}
+
+        <p>
+          If {microdepositVerificationDetails.microdeposit_type === "descriptor_code" ? "it's" : "they're"} not visible
+          yet, please check in 1-2 days.
+        </p>
+
+        {microdepositVerificationDetails.microdeposit_type === "descriptor_code" ? (
+          <Input
+            value={verificationCode}
+            onChange={setVerificationCode}
+            label="6-digit code"
+            invalid={errors.has("verificationCode")}
+            help={errors.get("verificationCode")}
+          />
+        ) : (
+          <>
+            <DecimalInput
+              value={firstAmount}
+              onChange={setFirstAmount}
+              invalid={errors.has("firstAmount")}
+              min="0"
+              placeholder="0"
+              label="Amount 1"
+              prefix="$"
+              help={errors.get("firstAmount")}
+            />
+            <DecimalInput
+              value={secondAmount}
+              onChange={setSecondAmount}
+              invalid={errors.has("secondAmount")}
+              min="0"
+              placeholder="0"
+              label="Amount 2"
+              prefix="$"
+              help={errors.get("secondAmount")}
+            />
+          </>
+        )}
+
+        <div className="modal-footer">
+          <MutationButton loadingText="Submitting..." mutation={verifyMicrodeposit}>
+            Submit
+          </MutationButton>
+        </div>
+      </Modal>
+    </>
+  );
+};
+
+export default StripeMicrodepositVerification;
