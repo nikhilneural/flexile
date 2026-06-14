@@ -3,6 +3,7 @@ import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { requestId } from "hono/request-id";
 import type { Env } from "./env";
+import { routes } from "./routes";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -41,5 +42,8 @@ app.get("/health", (c) => {
     timestamp: new Date().toISOString(),
   });
 });
+
+// Mount all API routes
+app.route("/", routes);
 
 export default app;

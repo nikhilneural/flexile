@@ -1,7 +1,6 @@
-import { and, eq, type SQL } from "drizzle-orm";
+import { and, eq, sql, type SQL } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import type { PgColumn, PgTable } from "drizzle-orm/pg-core";
-import { pick } from "lodash-es";
 import { z } from "zod";
 import type { Env } from "@/env";
 import * as schema from "./schema";
@@ -21,15 +20,11 @@ export const createDb = (env: Env) => {
 export type Database = ReturnType<typeof createDb>;
 
 export const byExternalId = (
-  db: Database,
   table: PgTable & { id: PgColumn; externalId: PgColumn },
   externalId: string,
   where?: SQL,
 ) =>
-  db
-    .select(pick(table, "id"))
-    .from(table)
-    .where(and(eq(table.externalId, externalId), where));
+  sql`(SELECT ${table.id} FROM ${table} WHERE ${eq(table.externalId, externalId)}${where ? sql` AND ${where}` : sql``} LIMIT 1)`;
 
 export const paginationSchema = z.object({ page: z.number(), perPage: z.number() }).or(z.object({}));
 export const pagination = (obj: z.infer<typeof paginationSchema>) => ({
