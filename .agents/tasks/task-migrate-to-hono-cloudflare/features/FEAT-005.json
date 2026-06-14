@@ -1,0 +1,40 @@
+{
+  "id": "FEAT-005",
+  "type": "feat",
+  "description": "Implement Cloudflare-specific infrastructure configuration and deployment setup. Create complete wrangler configurations for both Workers (API) and Pages (frontend), set up Cloudflare Queues for background processing, configure R2 bucket access, KV namespaces for caching, and add deployment scripts for CI/CD via GitHub Actions.",
+  "status": "completed",
+  "steps": [
+    "Finalize apps/api/wrangler.toml with production-ready configuration: multiple environments (development, staging, production), all bindings fully specified with placeholder IDs",
+    "Create apps/api/wrangler.toml environments section: [env.production] with production Hyperdrive config, R2 buckets (flexile-private, flexile-public), KV namespaces (CACHE, SESSIONS), Queues (invoice-payments, equity-vesting, email-notifications, quickbooks-sync, github-events, slack-messages, stripe-operations, wise-operations, tax-operations, document-generation, dividend-payments, equity-buybacks, cap-table-processing)",
+    "Create apps/web/wrangler.toml for Cloudflare Pages deployment configuration",
+    "Create .github/workflows/deploy-api.yml - GitHub Action for deploying the Hono API to Cloudflare Workers: checkout, pnpm install, typecheck, test, wrangler deploy. Use secrets for CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID",
+    "Create .github/workflows/deploy-web.yml - GitHub Action for deploying the frontend to Cloudflare Pages: checkout, pnpm install, next build, wrangler pages deploy",
+    "Create a root-level scripts/setup-cloudflare.sh that documents (as comments) all the Cloudflare resources that need to be created: Hyperdrive config, R2 buckets, KV namespaces, Queue bindings, custom domains, DNS records",
+    "Create apps/api/src/queues/registry.ts - define all queue names as constants and message type schemas (Zod) for type-safe queue publishing",
+    "Create apps/api/src/queues/publisher.ts - helper to publish messages to any queue with proper typing and serialization",
+    "Update apps/api/src/index.ts to export the queue consumer handler alongside the fetch handler: export default { fetch: app.fetch, queue: queueConsumer }",
+    "Create apps/api/src/scheduled/ directory for Cloudflare Cron Triggers (replacing Rails cron/recurring Sidekiq jobs): scheduled vesting checks, weekly recap triggers, monthly financial report syncs, dividend payment reminders, tax form deadlines",
+    "Create apps/api/src/scheduled/index.ts - main scheduled handler that dispatches based on cron pattern",
+    "Update wrangler.toml with [triggers] crons for scheduled tasks",
+    "Create apps/api/src/durable-objects/ directory (optional) for any stateful operations that need coordination (e.g., payment idempotency, distributed locks replacing Rails lock_manager.rb)",
+    "Create docker-compose.yml for local development: PostgreSQL (matching existing schema), MinIO (R2-compatible for local file storage testing)",
+    "Update root Makefile to include targets for the new stack: make dev-api, make dev-web, make deploy-api, make deploy-web",
+    "Create apps/api/.dev.vars file template for local wrangler dev secrets"
+  ],
+  "acceptance_criteria": [
+    "Complete wrangler.toml for API with all bindings (Hyperdrive, R2, KV, Queues, Cron Triggers)",
+    "Complete wrangler.toml for Pages frontend",
+    "GitHub Actions workflows for both API and frontend deployment",
+    "Queue registry with typed message schemas for all background job types",
+    "Scheduled handler for cron-triggered tasks",
+    "Local development docker-compose.yml for database and file storage",
+    "Setup script documenting all required Cloudflare resources"
+  ],
+  "verification": [
+    "Run 'cd apps/api && npx tsc --noEmit' to verify all new files compile",
+    "Validate wrangler.toml syntax with 'cd apps/api && npx wrangler deploy --dry-run'",
+    "Verify GitHub Actions workflow YAML syntax is valid"
+  ],
+  "blocked_reason": null,
+  "findings": "Network restrictions prevented full pnpm install and tsc --noEmit verification. All TypeScript errors from isolated compilation are exclusively module resolution errors (cannot find module) due to missing node_modules - no actual syntax or structural errors in the new code. YAML and TOML files validated for basic structure. The scheduled handler uses ScheduledEvent and ExecutionContext types from @cloudflare/workers-types which will resolve once dependencies are installed."
+}

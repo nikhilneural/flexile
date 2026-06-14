@@ -1,0 +1,7 @@
+{
+  "task_id": "task-migrate-to-hono-cloudflare",
+  "task_description": "Migrate the entire Flexile codebase from Rails + Next.js to Hono.js on Cloudflare Workers (API) + Cloudflare Pages (frontend). Replace: tRPC with Hono REST routes, S3 with R2, Inngest/Sidekiq with Cloudflare Queues, Vercel with Cloudflare Pages. Preserve all features: invoicing, equity management, dividends, cap table, payments (Stripe), integrations (QuickBooks, GitHub, DocuSeal, Slack), email (Resend), auth (Clerk), document signing, team updates, onboarding, admin dashboard, webhooks, and background jobs.",
+  "status": "in_progress",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003", "FEAT-004", "FEAT-005"],
+  "blocked_reason": null
+}
