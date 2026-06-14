@@ -21,3 +21,33 @@ stop_local:
 .PHONY: ghpr
 ghpr:
 	@./scripts/create_pr.sh || true
+
+# -----------------------------------------------
+# Cloudflare Workers / Pages Development Targets
+# -----------------------------------------------
+
+.PHONY: dev-api dev-web deploy-api deploy-web dev-services stop-dev-services
+
+# Start the API worker in local development mode
+dev-api:
+	cd apps/api && npx wrangler dev
+
+# Start the web frontend in local development mode
+dev-web:
+	cd apps/web && pnpm dev
+
+# Deploy the API worker to production
+deploy-api:
+	cd apps/api && npx wrangler deploy --env production
+
+# Deploy the web frontend to Cloudflare Pages
+deploy-web:
+	cd apps/web && pnpm build && npx wrangler pages deploy .vercel/output/static --project-name=flexile-web
+
+# Start local development services (PostgreSQL + MinIO)
+dev-services:
+	$(DOCKER_COMPOSE_CMD) -f docker-compose.yml up $(if $(filter true,$(LOCAL_DETACHED)),-d)
+
+# Stop local development services
+stop-dev-services:
+	$(DOCKER_COMPOSE_CMD) -f docker-compose.yml down

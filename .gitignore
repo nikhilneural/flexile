@@ -10,6 +10,7 @@ tmp
 .env*
 !.env.test
 .env*.local
+.dev.vars
 .vercel
 .tool-versions
 

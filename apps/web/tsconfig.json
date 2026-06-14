@@ -1,0 +1,36 @@
+{
+  "compilerOptions": {
+    "noEmit": true,
+    "moduleResolution": "bundler",
+    "target": "es2023",
+    "lib": ["dom", "dom.iterable", "es2023"],
+    "module": "esnext",
+    "strict": true,
+    "allowUnreachableCode": false,
+    "allowUnusedLabels": false,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "noUncheckedIndexedAccess": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "forceConsistentCasingInFileNames": true,
+    "plugins": [{ "name": "next" }],
+    "paths": {
+      "@/*": ["./*"]
+    },
+    "resolveJsonModule": true,
+    "verbatimModuleSyntax": true,
+    "jsx": "preserve",
+    "skipLibCheck": true,
+    "incremental": true,
+    "esModuleInterop": true,
+    "allowJs": true
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": ["node_modules"]
+}

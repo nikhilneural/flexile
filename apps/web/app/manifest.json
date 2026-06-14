@@ -1,0 +1,6 @@
+{
+  "name": "Flexile",
+  "icons": [{ "src": "/logo-icon.svg", "purpose": "monochrome any", "sizes": "any" }],
+  "start_url": "/",
+  "display": "standalone"
+}

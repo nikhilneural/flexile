@@ -1,0 +1,185 @@
+name = "flexile-api"
+main = "src/index.ts"
+compatibility_date = "2024-12-18"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+ENVIRONMENT = "development"
+
+# Hyperdrive binding for PostgreSQL connection pooling
+[[hyperdrive]]
+binding = "HYPERDRIVE"
+id = "placeholder-hyperdrive-id"
+
+# R2 bucket for file storage (replacing S3)
+[[r2_buckets]]
+binding = "R2_PRIVATE"
+bucket_name = "flexile-private-dev"
+
+[[r2_buckets]]
+binding = "R2_PUBLIC"
+bucket_name = "flexile-public-dev"
+
+# KV namespaces for caching and sessions
+[[kv_namespaces]]
+binding = "KV_CACHE"
+id = "placeholder-cache-kv-id"
+
+[[kv_namespaces]]
+binding = "KV_SESSIONS"
+id = "placeholder-sessions-kv-id"
+
+# Queue producers
+[[queues.producers]]
+binding = "QUEUE_JOBS"
+queue = "flexile-jobs-dev"
+
+[[queues.producers]]
+binding = "QUEUE_EMAILS"
+queue = "flexile-emails-dev"
+
+# Queue consumers
+[[queues.consumers]]
+queue = "flexile-jobs-dev"
+max_batch_size = 10
+max_batch_timeout = 30
+max_retries = 5
+dead_letter_queue = "flexile-jobs-dlq-dev"
+
+[[queues.consumers]]
+queue = "flexile-emails-dev"
+max_batch_size = 10
+max_batch_timeout = 5
+max_retries = 3
+dead_letter_queue = "flexile-emails-dlq-dev"
+
+# Cron Triggers for scheduled tasks
+[triggers]
+crons = [
+  "0 2 * * *",
+  "0 9 * * 1",
+  "0 3 1 * *",
+  "0 8 1 * *",
+  "0 6 15 1 *",
+]
+
+# ---------------------
+# Staging Environment
+# ---------------------
+[env.staging]
+name = "flexile-api-staging"
+
+[env.staging.vars]
+ENVIRONMENT = "staging"
+
+[[env.staging.hyperdrive]]
+binding = "HYPERDRIVE"
+id = "placeholder-staging-hyperdrive-id"
+
+[[env.staging.r2_buckets]]
+binding = "R2_PRIVATE"
+bucket_name = "flexile-private-staging"
+
+[[env.staging.r2_buckets]]
+binding = "R2_PUBLIC"
+bucket_name = "flexile-public-staging"
+
+[[env.staging.kv_namespaces]]
+binding = "KV_CACHE"
+id = "placeholder-staging-cache-kv-id"
+
+[[env.staging.kv_namespaces]]
+binding = "KV_SESSIONS"
+id = "placeholder-staging-sessions-kv-id"
+
+[[env.staging.queues.producers]]
+binding = "QUEUE_JOBS"
+queue = "flexile-jobs-staging"
+
+[[env.staging.queues.producers]]
+binding = "QUEUE_EMAILS"
+queue = "flexile-emails-staging"
+
+[[env.staging.queues.consumers]]
+queue = "flexile-jobs-staging"
+max_batch_size = 10
+max_batch_timeout = 30
+max_retries = 5
+dead_letter_queue = "flexile-jobs-dlq-staging"
+
+[[env.staging.queues.consumers]]
+queue = "flexile-emails-staging"
+max_batch_size = 10
+max_batch_timeout = 5
+max_retries = 3
+dead_letter_queue = "flexile-emails-dlq-staging"
+
+[env.staging.triggers]
+crons = [
+  "0 2 * * *",
+  "0 9 * * 1",
+  "0 3 1 * *",
+  "0 8 1 * *",
+  "0 6 15 1 *",
+]
+
+# ---------------------
+# Production Environment
+# ---------------------
+[env.production]
+name = "flexile-api"
+routes = [{ pattern = "api.flexile.com", custom_domain = true }]
+
+[env.production.vars]
+ENVIRONMENT = "production"
+
+[[env.production.hyperdrive]]
+binding = "HYPERDRIVE"
+id = "placeholder-production-hyperdrive-id"
+
+[[env.production.r2_buckets]]
+binding = "R2_PRIVATE"
+bucket_name = "flexile-private"
+
+[[env.production.r2_buckets]]
+binding = "R2_PUBLIC"
+bucket_name = "flexile-public"
+
+[[env.production.kv_namespaces]]
+binding = "KV_CACHE"
+id = "placeholder-production-cache-kv-id"
+
+[[env.production.kv_namespaces]]
+binding = "KV_SESSIONS"
+id = "placeholder-production-sessions-kv-id"
+
+[[env.production.queues.producers]]
+binding = "QUEUE_JOBS"
+queue = "flexile-jobs"
+
+[[env.production.queues.producers]]
+binding = "QUEUE_EMAILS"
+queue = "flexile-emails"
+
+[[env.production.queues.consumers]]
+queue = "flexile-jobs"
+max_batch_size = 10
+max_batch_timeout = 30
+max_retries = 5
+dead_letter_queue = "flexile-jobs-dlq"
+
+[[env.production.queues.consumers]]
+queue = "flexile-emails"
+max_batch_size = 10
+max_batch_timeout = 5
+max_retries = 3
+dead_letter_queue = "flexile-emails-dlq"
+
+[env.production.triggers]
+crons = [
+  "0 2 * * *",
+  "0 9 * * 1",
+  "0 3 1 * *",
+  "0 8 1 * *",
+  "0 6 15 1 *",
+]
