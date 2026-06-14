@@ -1,0 +1,49 @@
+name = "flexile-api"
+main = "src/index.ts"
+compatibility_date = "2024-12-18"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+ENVIRONMENT = "development"
+
+# Hyperdrive binding for PostgreSQL connection pooling
+[[hyperdrive]]
+binding = "HYPERDRIVE"
+id = "flexile-db"
+
+# R2 bucket for file storage (replacing S3)
+[[r2_buckets]]
+binding = "R2_PRIVATE"
+bucket_name = "flexile-private"
+
+[[r2_buckets]]
+binding = "R2_PUBLIC"
+bucket_name = "flexile-public"
+
+# KV namespaces for caching and sessions
+[[kv_namespaces]]
+binding = "KV_CACHE"
+id = "flexile-cache"
+
+[[kv_namespaces]]
+binding = "KV_SESSIONS"
+id = "flexile-sessions"
+
+# Queue bindings for background jobs (replacing Inngest/Sidekiq)
+[[queues.producers]]
+binding = "QUEUE_JOBS"
+queue = "flexile-jobs"
+
+[[queues.producers]]
+binding = "QUEUE_EMAILS"
+queue = "flexile-emails"
+
+[[queues.consumers]]
+queue = "flexile-jobs"
+max_batch_size = 10
+max_batch_timeout = 30
+
+[[queues.consumers]]
+queue = "flexile-emails"
+max_batch_size = 10
+max_batch_timeout = 5
