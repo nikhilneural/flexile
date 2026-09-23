@@ -1,0 +1,24 @@
+{
+  "name": "flexile-hono",
+  "version": "1.0.0",
+  "description": "Flexile ported to Hono + Cloudflare Workers (Workers + D1)",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --ip 0.0.0.0 --port 8788",
+    "deploy": "wrangler deploy",
+    "db:migrate:local": "wrangler d1 migrations apply flexile-db --local",
+    "db:migrate:remote": "wrangler d1 migrations apply flexile-db --remote",
+    "db:seed:local": "wrangler d1 execute flexile-db --local --file=./migrations/0002_seed.sql",
+    "db:seed:remote": "wrangler d1 execute flexile-db --remote --file=./migrations/0002_seed.sql",
+    "cf-typegen": "wrangler types"
+  },
+  "dependencies": {
+    "hono": "^4.6.14"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241218.0",
+    "typescript": "^5.7.2",
+    "wrangler": "^4.86.0"
+  }
+}

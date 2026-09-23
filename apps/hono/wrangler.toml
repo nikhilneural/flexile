@@ -1,0 +1,20 @@
+name = "flexile-hono"
+main = "src/index.ts"
+compatibility_date = "2024-12-18"
+compatibility_flags = ["nodejs_compat"]
+
+# Static assets (frontend) served from ./public
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+# D1 database binding
+[[d1_databases]]
+binding = "DB"
+database_name = "flexile-db"
+database_id = "local-flexile-db"
+migrations_dir = "migrations"
+
+[vars]
+APP_NAME = "Flexile"
+JWT_SECRET = "dev-secret-change-in-production"
