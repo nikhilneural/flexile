@@ -19,9 +19,10 @@ import { z } from "zod";
 import { db } from "@/db";
 import { companies, users } from "@/db/schema";
 import env from "@/env";
+import { getClerkIdentity } from "@/lib/auth/clerk";
+import { setCurrentUser } from "@/lib/auth/setCurrent";
 import { assertDefined } from "@/utils/assert";
 import { richTextExtensions } from "@/utils/richText";
-import { internal_userid_url } from "@/utils/routes";
 import { policies } from "./access";
 import { latestUserComplianceInfo, withRoles } from "./routes/users/helpers";
 import { type AppRouter } from "./server";
@@ -43,8 +44,11 @@ export const createContext = cache(async ({ req }: FetchCreateContextFnOptions) 
     accept: "application/json",
     ...(csrfToken ? { "x-csrf-token": csrfToken } : {}),
   };
-  const response = await fetch(internal_userid_url({ host }), { headers });
-  const userId = response.ok ? z.object({ id: z.number() }).parse(await response.json()).id : null;
+  const user = await setCurrentUser(await getClerkIdentity(), {
+    ipAddress,
+    isDevelopment: process.env.NODE_ENV === "development",
+  });
+  const userId = user ? Number(user.id) : null;
 
   return {
     userId,
