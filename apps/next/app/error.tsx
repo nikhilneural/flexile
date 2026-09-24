@@ -13,8 +13,7 @@ export default function Error({ error }: { error: Error }) {
   const code = (() => {
     if (error instanceof TRPCClientError) {
       if (error.message === "NOT_FOUND") return 404;
-      if (error.message === "FORBIDDEN") return 403;
-      if (error.message === "UNAUTHORIZED") throw redirect("/login");
+      if (error.message === "FORBIDDEN" || error.message === "UNAUTHORIZED") return 403;
       return 500;
     }
     if (error instanceof ResponseError) {
@@ -28,7 +27,7 @@ export default function Error({ error }: { error: Error }) {
         }
         return status;
       }
-      if (status === 401) throw redirect("/login");
+      if (status === 401) return 403;
       return 500;
     }
     Bugsnag.notify(error);

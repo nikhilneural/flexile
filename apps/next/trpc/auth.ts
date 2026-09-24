@@ -33,11 +33,9 @@ export async function resolveClerkUserId(ipAddress: string): Promise<number | nu
         clerkUser.emailAddresses[0]?.emailAddress;
       if (!email) return null;
 
-      if (process.env.NODE_ENV === "development") {
-        const existing = await db.query.users.findFirst({ where: eq(users.email, email) });
-        if (existing) {
-          [user] = await db.update(users).set({ clerkId: clerkUserId }).where(eq(users.id, existing.id)).returning();
-        }
+      const existing = await db.query.users.findFirst({ where: eq(users.email, email) });
+      if (existing) {
+        [user] = await db.update(users).set({ clerkId: clerkUserId }).where(eq(users.id, existing.id)).returning();
       }
 
       if (!user) {
@@ -58,7 +56,12 @@ export async function resolveClerkUserId(ipAddress: string): Promise<number | nu
 
     return Number(user.id);
   } catch (error) {
-    Bugsnag.notify(error instanceof Error ? error : new Error(String(error)));
+    console.error("resolveClerkUserId failed:", error);
+    try {
+      Bugsnag.notify(error instanceof Error ? error : new Error(String(error)));
+    } catch {
+      // Ignore bugsnag
+    }
     return null;
   }
 }

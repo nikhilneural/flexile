@@ -92,12 +92,11 @@ export const protectedProcedure = baseProcedure
     // Calling opts.next in two places doesn't work, so using this slightly awkward function wrapper
     const getContext = async () => {
       if (!input?.companyId) {
-        const user = assertDefined(
-          await db.query.users.findFirst({
-            where: eq(users.id, BigInt(userId)),
-            with: { userComplianceInfos: latestUserComplianceInfo },
-          }),
-        );
+        const user = await db.query.users.findFirst({
+          where: eq(users.id, BigInt(userId)),
+          with: { userComplianceInfos: latestUserComplianceInfo },
+        });
+        if (!user) throw new TRPCError({ code: "UNAUTHORIZED" });
         return {
           company: null,
           user,
@@ -109,16 +108,15 @@ export const protectedProcedure = baseProcedure
       }
       const company = await db.query.companies.findFirst({ where: eq(companies.externalId, input.companyId) });
       if (!company) throw new TRPCError({ code: "FORBIDDEN" });
-      const userWithRoles = assertDefined(
-        await db.query.users.findFirst({
-          with: {
-            ...withRoles(company.id),
-            companyContractors: { ...withRoles(company.id).companyContractors, with: { role: true } },
-            userComplianceInfos: latestUserComplianceInfo,
-          },
-          where: eq(users.id, BigInt(userId)),
-        }),
-      );
+      const userWithRoles = await db.query.users.findFirst({
+        with: {
+          ...withRoles(company.id),
+          companyContractors: { ...withRoles(company.id).companyContractors, with: { role: true } },
+          userComplianceInfos: latestUserComplianceInfo,
+        },
+        where: eq(users.id, BigInt(userId)),
+      });
+      if (!userWithRoles) throw new TRPCError({ code: "FORBIDDEN" });
       const roles = {
         companyAdministrator: userWithRoles.companyAdministrators[0],
         companyContractor: userWithRoles.companyContractors[0],

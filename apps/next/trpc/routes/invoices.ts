@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { formatISO } from "date-fns";
-import { and, desc, eq, gte, inArray, isNull, lt, lte, not, notInArray } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNull, lt, lte, not, notInArray, sql } from "drizzle-orm";
 import { union } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { pick } from "lodash-es";
@@ -52,10 +52,12 @@ const actionableByUserInvoiceIds = async (userId: bigint, company: typeof compan
         eq(invoices.companyId, company.id),
         inArray(invoices.status, ["received", "approved", "failed"]),
         lt(invoices.invoiceApprovalsCount, company.requiredInvoiceApprovalCount),
-        notInArray(
-          invoices.id,
-          approvedInvoiceIds.map((row) => row.invoiceId),
-        ),
+        approvedInvoiceIds.length > 0
+          ? notInArray(
+              invoices.id,
+              approvedInvoiceIds.map((row) => row.invoiceId),
+            )
+          : undefined,
       ),
     );
 
@@ -373,8 +375,12 @@ export const invoicesRouter = createRouter({
           where,
           requiresAcceptanceByPayeeFilter ? not(requiresAcceptanceByPayeeFilter) : undefined,
           input.invoiceFilter === "actionable"
-            ? inArray(invoices.id, actionableIds)
-            : notInArray(invoices.id, actionableIds),
+            ? actionableIds.length > 0
+              ? inArray(invoices.id, actionableIds)
+              : sql`FALSE`
+            : actionableIds.length > 0
+              ? notInArray(invoices.id, actionableIds)
+              : undefined,
         );
       }
       const rows = await db.query.invoices.findMany({
