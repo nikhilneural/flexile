@@ -10,7 +10,6 @@ import superjson from "superjson";
 import { useCurrentCompany, useCurrentUser, useUserStore } from "@/global";
 import { policies } from "@/trpc/access";
 import { request } from "@/utils/request";
-import { internal_current_user_data_path } from "@/utils/routes";
 import { type AppRouter } from "./server";
 import { createClient } from "./shared";
 
@@ -23,7 +22,7 @@ const GetUserData = ({ children }: { children: React.ReactNode }) => {
     queryKey: ["currentUser", userId],
     queryFn: async (): Promise<unknown> => {
       const response = await request({
-        url: internal_current_user_data_path(),
+        url: "/internal/current_user_data",
         accept: "json",
         method: "GET",
         assertOk: true,
