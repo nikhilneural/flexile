@@ -10,18 +10,19 @@ export async function PATCH(req: Request) {
   const userId = await resolveClerkUserId(ipAddress);
   if (!userId) return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
 
-  const body = await req.json().catch(() => ({}));
-  const data = body.user ?? body;
+  const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
+  const userObj = body.user && typeof body.user === "object" ? (body.user as Record<string, unknown>) : undefined;
+  const data = userObj ?? body;
 
-  const streetAddress = data.street_address?.trim();
-  const city = data.city?.trim();
-  const state = data.state?.trim() ?? null;
-  const zipCode = data.zip_code?.trim();
+  const streetAddress = typeof data.street_address === "string" ? data.street_address.trim() : "";
+  const city = typeof data.city === "string" ? data.city.trim() : "";
+  const state = typeof data.state === "string" ? data.state.trim() : null;
+  const zipCode = typeof data.zip_code === "string" ? data.zip_code.trim() : "";
   const businessEntity = Boolean(data.business_entity);
-  const businessName = data.business_name?.trim() ?? null;
-  const taxId = data.tax_id?.trim() ?? null;
+  const businessName = typeof data.business_name === "string" ? data.business_name.trim() : null;
+  const taxId = typeof data.tax_id === "string" ? data.tax_id.trim() : null;
   const birthDate = data.birth_date ? String(data.birth_date).trim() : null;
-  const signature = data.signature?.trim() ?? null;
+  const signature = typeof data.signature === "string" ? data.signature.trim() : null;
 
   if (!streetAddress || !city || !zipCode || (businessEntity && !businessName)) {
     return NextResponse.json({ success: false, error_message: "Please input all values" });

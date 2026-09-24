@@ -34,6 +34,7 @@ import {
 } from "@heroicons/react/24/solid";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { capitalize } from "lodash-es";
+import type { Route } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -517,7 +518,7 @@ const NavLink = ({
 }) => {
   const Icon = active && filledIcon ? filledIcon : icon;
   return (
-    <Link className={cn(navLinkClasses, { "font-bold text-white": active }, className)} href={href}>
+    <Link className={cn(navLinkClasses, { "font-bold text-white": active }, className)} href={href as Route}>
       <div className="relative">
         <Icon className="h-6 w-8" />
         {badge && badge > 0 ? (

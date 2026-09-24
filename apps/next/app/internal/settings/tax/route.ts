@@ -182,8 +182,8 @@ export async function PATCH(req: Request) {
       .update(users)
       .set({
         legalName: legalName ?? undefined,
-        countryCode: countryCode ?? undefined,
-        citizenshipCountryCode: citizenshipCountryCode ?? undefined,
+        countryCode,
+        citizenshipCountryCode,
         streetAddress: streetAddress || undefined,
         city: city || undefined,
         state: state || undefined,

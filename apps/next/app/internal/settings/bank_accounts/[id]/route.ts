@@ -24,12 +24,20 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     return NextResponse.json({ success: false, error: "Bank account not found" }, { status: 404 });
   }
 
-  const body = await req.json().catch(() => ({}));
-  const bankAccountParams = body.bank_account ?? body;
+  const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
+  const bankAccountObj =
+    body.bank_account && typeof body.bank_account === "object"
+      ? (body.bank_account as Record<string, unknown>)
+      : undefined;
+  const bankAccountParams = bankAccountObj ?? body;
+  const usedForInvoices =
+    bankAccountParams.used_for_invoices !== undefined ? Boolean(bankAccountParams.used_for_invoices) : undefined;
+  const usedForDividends =
+    bankAccountParams.used_for_dividends !== undefined ? Boolean(bankAccountParams.used_for_dividends) : undefined;
 
   await db.transaction(async (tx) => {
-    if (bankAccountParams.used_for_invoices !== undefined) {
-      if (bankAccountParams.used_for_invoices) {
+    if (usedForInvoices !== undefined) {
+      if (usedForInvoices) {
         await tx
           .update(wiseRecipients)
           .set({ usedForInvoices: false })
@@ -40,8 +48,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       }
     }
 
-    if (bankAccountParams.used_for_dividends !== undefined) {
-      if (bankAccountParams.used_for_dividends) {
+    if (usedForDividends !== undefined) {
+      if (usedForDividends) {
         await tx
           .update(wiseRecipients)
           .set({ usedForDividends: false })

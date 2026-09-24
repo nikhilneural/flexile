@@ -17,7 +17,7 @@ function verifyGithubSignature(signature: string | null, rawBody: string, secret
 export async function POST(req: Request) {
   const rawBody = await req.text();
   const signature = req.headers.get("x-hub-signature-256");
-  const secret = process.env.GITHUB_WEBHOOK_SECRET ?? "";
+  const secret = process.env.GITHUB_WEBHOOK_SECRET ?? process.env.GH_WEBHOOK_SECRET ?? "";
 
   if (secret && signature && !verifyGithubSignature(signature, rawBody, secret)) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
