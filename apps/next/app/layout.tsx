@@ -16,7 +16,7 @@ const abcWhyte = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Flexile",
+  title: "fillanadpay",
   description: "Payroll & equity for everyone",
   icons: [
     {

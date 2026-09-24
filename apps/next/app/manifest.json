@@ -1,5 +1,5 @@
 {
-  "name": "Flexile",
+  "name": "fillanadpay",
   "icons": [{ "src": "/logo-icon.svg", "purpose": "monochrome any", "sizes": "any" }],
   "start_url": "/",
   "display": "standalone"
