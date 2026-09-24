@@ -3,53 +3,17 @@
 # Exit on error
 set -e
 
-echo "🚀 Setting up development environment..."
-
-# Check if Homebrew is installed
-if ! command -v brew &> /dev/null; then
-  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-else
-  echo "✓ Homebrew already installed"
-fi
-
-# Install RVM and Ruby
-\curl -sSL https://get.rvm.io | bash
-source $HOME/.rvm/scripts/rvm
-RUBY_VERSION=$(cat .ruby-version)
-rvm install "ruby-$RUBY_VERSION"
-rvm use "ruby-$RUBY_VERSION"
-
-# Install PostgreSQL
-brew install postgresql
-brew services start postgresql
-createdb flexile_development || true
-psql -c "CREATE USER username WITH LOGIN SUPERUSER PASSWORD 'password';" || true
+echo "🚀 Setting up FillanadPay Next.js development environment..."
 
 corepack enable
 pnpm install
 
-# Ask which version of Sidekiq to use
-echo "Do you want to use Sidekiq Pro? (y/n)"
-read use_sidekiq_pro
-
-if [[ $use_sidekiq_pro == "y" ]]; then
-  echo "Please enter your Sidekiq Pro credentials (format: username:password):"
-  read sidekiq_pro_credentials
-
-  # Configure bundler for sidekiq-pro
-  bundle config gems.contribsys.com "$sidekiq_pro_credentials"
-else
-  # Use regular Sidekiq
-  echo "Add FLEXILE_SIDEKIQ_PRO_DISABLED=true to your shell's rc file (e.g. ~/.bashrc)"
-  echo "echo 'export FLEXILE_SIDEKIQ_PRO_DISABLED=true' >> ~/.bashrc"
+if [ ! -f ".env.local" ]; then
+  if [ -f "env.demo.example" ]; then
+    echo "Creating .env.local from demo template..."
+    cp env.demo.example .env.local
+    cp env.demo.example apps/next/.env.local
+  fi
 fi
 
-bundle install
-gem install foreman
-
-# Setup Vercel environment
-pnpm vercel link
-pnpm vercel env pull .env
-ln -sf $PWD/.env ./apps/next/.env
-
-echo "✨ Setup complete! You can now start the development server."
+echo "✨ Setup complete! You can now start the development server with: pnpm dev"

@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation";
 import { navLinks as equityNavLinks } from "@/app/equity";
-import { getCurrentUserDataFromRequest } from "@/trpc/routes/users/currentUserData";
+import { getEffectiveCurrentUser } from "@/trpc/routes/users/demoUser";
 import { assertDefined } from "@/utils/assert";
 
 export async function GET(req: Request) {
-  const user = await getCurrentUserDataFromRequest(req);
+  const user = await getEffectiveCurrentUser(req);
   if (!user) return redirect("/login");
   if (user.onboardingPath) return redirect(user.onboardingPath);
   if (user.roles.worker?.inviting_company) {

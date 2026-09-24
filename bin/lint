@@ -2,12 +2,7 @@
 
 set -e
 
-pnpm next lint apps/next --fix --max-warnings 0
-pnpm tsc -p e2e/tsconfig.json
+pnpm tsc -p apps/next
 pnpm eslint --fix --max-warnings 0
 pnpm prettier --write '**/*.{css,md,json}'
-pnpm svgo --multipass apps/rails/app/assets/**/*.svg
 pnpm svgo --multipass apps/next/**/*.svg
-cd apps/rails
-bundle exec rubocop -a
-bundle exec erb_lint --lint-all --format compact -a

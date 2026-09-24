@@ -17,9 +17,3 @@ tmp
 /node_modules
 /.puppeteer
 /certificates
-
-# Rails credentials
-/apps/rails/config/master.key
-/apps/rails/config/credentials.yml.enc
-/apps/rails/config/credentials/*.yml.enc
-/apps/rails/config/credentials/*.key

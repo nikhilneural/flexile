@@ -5,20 +5,13 @@ set -e
 cd "$(dirname "$0")/.."
 
 function kill_process_listening_on_port {
-  lsof -i :$1 | grep LISTEN | awk '{print $2}' | xargs -r kill -9
+  lsof -i :$1 | grep LISTEN | awk '{print $2}' | xargs -r kill -9 2>/dev/null || true
 }
 
 echo "Starting application services"
 kill_process_listening_on_port 3100
-kill_process_listening_on_port 3101
-kill_process_listening_on_port 3037
+kill_process_listening_on_port 3000
 
-export NODE_TLS_REJECT_UNAUTHORIZED=0
-export RAILS_ENV=test
 export NODE_ENV=test
 
-cd apps/rails
-bundle exec rails db:drop db:create db:schema:load db:seed_test_data
-cd ../..
-
-foreman start -f Procfile.test -e .env.test
+pnpm next dev apps/next -p 3100
