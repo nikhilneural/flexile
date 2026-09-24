@@ -21,8 +21,8 @@ import { companies, users } from "@/db/schema";
 import env from "@/env";
 import { assertDefined } from "@/utils/assert";
 import { richTextExtensions } from "@/utils/richText";
-import { internal_userid_url } from "@/utils/routes";
 import { policies } from "./access";
+import { resolveClerkUserId } from "./auth";
 import { latestUserComplianceInfo, withRoles } from "./routes/users/helpers";
 import { type AppRouter } from "./server";
 
@@ -43,8 +43,8 @@ export const createContext = cache(async ({ req }: FetchCreateContextFnOptions) 
     accept: "application/json",
     ...(csrfToken ? { "x-csrf-token": csrfToken } : {}),
   };
-  const response = await fetch(internal_userid_url({ host }), { headers });
-  const userId = response.ok ? z.object({ id: z.number() }).parse(await response.json()).id : null;
+  // Resolve the authenticated user natively via Clerk (previously proxied to Rails internal_userid).
+  const userId = await resolveClerkUserId(ipAddress);
 
   return {
     userId,
